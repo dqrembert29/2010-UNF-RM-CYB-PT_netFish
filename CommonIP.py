@@ -9,7 +9,7 @@
 # IMPORT NECESSARY LIBRARIES
 import sys
 
-
+#!/usr/bin/env python3
 
 #-----CREATE HELPER FUNCTIONS-----
 
