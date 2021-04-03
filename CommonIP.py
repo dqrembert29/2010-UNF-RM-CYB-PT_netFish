@@ -6,8 +6,6 @@
 #would contain IPs. Might need to add another argument for specifying if client or server IP comes first
 #to use the second function.. but then I could easily have it scan for the most common host IP too!
 
-#!/usr/bin/env python3
-
 # IMPORT NECESSARY LIBRARIES
 import sys
 

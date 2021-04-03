@@ -1,6 +1,2 @@
-<<<<<<< HEAD
-language = "bash"
-=======
 language = "python3"
->>>>>>> origin/main
-run = ""
+run = "python3 CommonIP.py"
