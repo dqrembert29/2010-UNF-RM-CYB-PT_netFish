@@ -25,10 +25,71 @@ def parseLog(args, log):
 #For each 
 #-------If log file is False-------
 
+#Posts results in a list. Requires a string to be printed as the header, a string to print if no results are found, a dictionary with the counts of results, and a dictionary with port numbers if using portScans, and maximum output list length.
+#If not port scanning, give the last argument an empty dictionary.
+def postResults(resultsHeader, noResultsResponse, countDictionary, optionalPortDictionary, outputNum):
+#shortened variables, to give clear descriptors without making these long to use.
+    countDict = countDictionary;
+    portDict = optionalPortDictionary;
+    if bool(countDict):
+#create 'printList' list to be used for searching for keys/values
+        printList = [];
+#Set counter to 'outputNum' for iterating while loop. This is the maximum list length, and is configurable.
+        counter = outputNum;
+#Re-orders countDict into ascending order of values(so that keys with higher 'counts' are posted last).
+        res = {val[0] : val[1] for val in sorted(countDict.items(), key = lambda x: (x[1], x[0]))}
+#Adds dictionary keys to a list and iterates on them.
+        countKeys = countDict.keys()
+        for key in countKeys
+#While counter is greater than 0(maximum list size has not been reached)..
+            if counter>0:
+#add current key to printList
+                printList.append(key)
+#subtract 1 to stop iterating after outputNum.
+                counter-=1;
+#set 'counter' to the length of printList (this will help create a neat list)
+        counter = len(printList);
+#If any possible port scans/IPs/other target data were detected above...
+        if printList != []:
+#Wrap the custom header provided by the module in a neat box.
+            underline = ""
+            for i in resultsHeader:
+                underline = str(underline)+"-"
+            print(underline)
+            print(resultsHeader)
+            print(underline)
+#For each IP in re-ordered 'printList'.. (max outputNum, lower if less end results - refer to the above iteration for loop creating printList)
+            for i in printList:
+#print the counter, followed by a period, and the lowest-count IP to make it onto the printList.
+            print(str(counter)+". "+str(i));
+            if bool(portDict):
+#If the length of the IP's scanned ports list(or other key value) does not pass 80 characters..
+                if (len(portDict.get(i))<80):
+#print that list of scanned ports.
+                        print("Ports scanned: "+str(portDict.get(i)))
+                    else:
+                        print("Destination ports exeed listing limit")
+                else:
+                    print("Count in log: "+str(countDict.get(i)))
+#subtract '1' from counter for visual list
+                counter-=1;
+#Else if no possible port scans were detetected above..
+        elif bool(portDict) is False:
+#            def Reverse(list):
+#                return [nln for nln in reversed(list)]
+#            for i in Reverse(printList):
+            for i in (printList):
+#print the counter, followed by a period, and the lowest-count IP that scanned enough ports to make it onto the printList.
+                print(str(counter)+". "+str(i));
+#subtract '1' from counter
+                counter-=1;
+        else:
+#Print "No Port Scans Detected for target IP."
+            print(noResultsHeader);
+     else: print("No Results detected. Please check the arguments and that the file is a UFW log.")
 
 
 def findPortScans(args):
-
 # open the file used in command
     file = open(args[0], 'r');
 #set variable for the lines in file
@@ -53,7 +114,7 @@ def findPortScans(args):
     for i in chars:
 #If skip equals true(because the dstIP doesn't equal target destination IP)
         if skip == True:
-#If the current character is a delimiter(hardcoded to space for now)
+#If the current character is a new line, clear values and stop skipping.
             if i == '\n' or i == '\r\n':
                 srcIP = ""; dstIP = ""; currentArg = "";
                 skip = False;
@@ -80,7 +141,7 @@ def findPortScans(args):
 #Strip currentArg of its tag to get the raw IP
                 currentArg = str(currentArg[:4])
 #If argument is a destination port, check if the source IP doesn't match an existing key(is not in the dictionary yet)
-                if src not in portScanDict:
+                if srcIP not in portScanDict:
 #                    print("New IP Found: "+currentArg);
 #If source IP does not match a key, create a new one with the destination port its value
                     portScanDict[srcIP] = currentArg;
@@ -92,15 +153,16 @@ def findPortScans(args):
 #If the destination port is not already listed
                     if currentArg not in check:
 #Add the new port to the string value of that IP(add to a human-readable list)
-                        portScanDict[srcIP] = str(portScanDict[srcIP])+", "+str(portScanDict[srcIP])
+                        portScanDict[srcIP] = str(portScanDict[srcIP])+", "+str(currentArg)
 #Add +1 to the ports scanned count for that source IP.
                         scanCountDict[srcIP] = scanCountDict[srcIP]+1;
 #                    value = scanCountDict.get(currentArg)
 #                    value+=1
 #                    scanCountDict[currentArg] = value
 #                    print("+1 Existing IP: "+currentArg);
-#after the argument has been interpretted, set currentArg back to ""
+#after the argument has been interpretted, set currentArg and check back to ""
             currentArg="";
+            check = "";
 #else if current character is a newline(other 'unimportant' characters are ignored)
         elif i == '\n' or i == '\r\n':
 #set source IP, destination IP, and currentArg blank
@@ -111,73 +173,32 @@ def findPortScans(args):
         else:
             currentArg=(currentArg+str(i));
 #                print("Current Arg: "+currentArg);
-#Create a 'postResults' function with 'counter' and 'printList' local variables.
-    def postResults():
-#create 'printList' list to be used for searching for keys/values
-        printList = [];
-#Set counter to '10' for iterating while loop
-        counter = 10;
-        while (int(counter)>0):
-#use the 'max' function to find the key with the highest value in scanCountDict and assign it to currentArg
-            currentArg = max(scanCountDict, key=scanCountDict.get)
-#subtract 1 from 'counter' to stop iterating after 10.
-            counter-=1;
-#If that IP has attempted connections to the target IP with at least 5 destination ports..(hardcoded, could add option for this to be changed by user).
-            if scanCountDict[currentArg]>3:
-#add currentArg to printList
-                printList.append(currentArg);
-#delete the currentArg key from scanCountDict
-                del scanCountDict[currentArg]
-#set 'counter' to the length of printList (this will help create a neat list)
-        counter = len(printList);
-#reverse the order to print in descending order of appearance count.
-        printList.reverse()
-#If any possible port scans were detected above..
-        if printList != []:
-            print("Likely port scanning IPs in ascending order of destination ports")
-#For each IP in reversed 'printList' - this creates an ascending list of possible port scans. (max 10, lower if less than 10 IPs tried to connect to over 4 destination ports - refer to the above 10 iteration for loop creating printList)
-            for i in Reverse(printList):
-#print the counter, followed by a period, and the lowest-count IP that scanned enough ports to make it onto the printList.
-                print(str(counter)+". "+str(i));
-#If the length of the IP's scanned ports list(key value) does not pass 50 characters..
-                if len(portScanDict.get(i))<50:
-#print that list of scanned ports.
-                    print("Ports scanned: "+str(portScanDict.get(i)))
-                else:
-                    print("Destination ports exeed listing limit")
-#subtract '1' from counter
-                counter-=1;
-
-#Else if no possible port scans were detetected above..
-        else:
-#Print "No Port Scans Detected for target IP."
-            print("No Port Scans Detected for target IP.");
-    if bool(scanCountDict):
-         postResults(); 
-    else: print("No Results detected. Please check the arguments and that the file is a UFW log.")
+#Use the 'postResults' function with local variables.
+    postResults("| Likely port scanning IPs in ascending order |", "No Port Scans Detected for target IP.", scanCountDict, portScanDict); 
 
 
 def findMostCommonIP(log):
-# open the file used in command
-    file = open(log, 'r');
+# open the file used in command, whether only a file location or more arguments are provided.
+    if isinstance(log, str):
+        file = open(log, 'r');
+    else:
+        file = open(log[0], 'r');
 #set variable for the lines in file
     chars = file.read();
 #create dictionary for each IP with their counts as keys
     IPDict = {};
+#For passing to Post Results
+    emptyDict = {};
 #set current IP for appending up to the next semicolon.
     currentArg = "";
-#set to true if source IP does not match the target
-    skip = False;
 #for each character in 'lines'
     for i in chars:
-        if skip == True:
 #If the current character is a delimiter(hardcoded to space for now)
-            if i == '\n' or i == '\r\n':
-                skip = False;
-#If the current character is a delimiter(hardcoded to space for now)
-        elif i == " ":
+        if i == " ":
 #check if the current argument is an IP using UFW format #Ideally, I would check if current IP matches IP format instead, but those have a LOT of rules to consider..
             if "SRC" in currentArg or "DST" in currentArg:
+#Strip currentArg of its tag to get the raw IP
+                currentArg = str(currentArg[4:])
 #If the argument is an IP, check if currentArg doesn't match an existing key(is not in the dictionary) #Ideally, I woulc check if current IP matches IP format here, but those have a LOT of rules to consider..
                 if currentArg not in IPDict:
 #                    print("New IP Found: "+currentArg);
@@ -198,15 +219,14 @@ def findMostCommonIP(log):
             currentArg = "";
 #If character is not a delimiter, concatinate it to currentArg
         else:
-            currentArg=(currentArg+str(i));
+            currentArg=currentArg+str(i);
+#Use postResults to list the most common IPs in asending order.
+    postResults("| Most common IPs in ascending order |", "No IPs included in file.", IPDict, emptyDict, 10);
 #           print("Current IP: "+currentArg);
-#other 'unimportant' characters skip resetting the currentArg
-#        else:
-#            continue
 #print the most common IP in IPDict, which I think is possible with max and get
-    mostCommonIP = max(IPDict, key=IPDict.get)
-#now print that value and the IP sorted(IPDict.items[0])
-    print("Most Common IP: "+str(mostCommonIP)+" Count: "+str(IPDict.get(mostCommonIP)))
+#    mostCommonIP = max(IPDict, key=IPDict.get)
+#now print that value and the IP sorted(IPList.items[0])
+#    print("Most Common IP: "+str(mostCommonIP)+" Count: "+str(IPDict.get(mostCommonIP)))
 
 
 
@@ -215,15 +235,20 @@ def findMostCommonIP(log):
 
 def findMostCommonSourceIP(log):
 
-# open the file used in command
-    file = open(log, 'r');
+# open the file used in command, whether only a file location or more arguments are provided.
+    if if isinstance(log, str)::
+        file = open(log, 'r');
+    else:
+        file = open(log[0], 'r');
 #set variable for the lines in file
     lines = file.readlines();
 #create dictionary for each IP with their counts as keys
     IPDict = {};
+#For passing to Post Results
+    emptyDict = {};
 #set current Argument for appending up to the next delimiter(hardcoded to space)
     currentArg = "";
-#set to true if source IP does not match the target
+#set to true after source IP is found.
     skip = False
 #for each line in 'lines'
     for line in lines:
@@ -239,16 +264,16 @@ def findMostCommonSourceIP(log):
 #            print("Counter: "+str(checkCounter));
 #            print("Current IP: "+currentArg);
             if skip == True:
-#If the current character is a delimiter(hardcoded to space for now)
+#If the current character is a new line, clear values and stop skipping.
                 if i == '\n' or i == '\r\n':
                     skip = False;
-                    currentArg = "";
+                    currentArg="";
 #If the current character is a delimiter(hardcoded to space for now)
             elif i == " ":
 #check if the current argument is an IP using UFW format #Ideally, I would check if current IP matches IP format instead, but those have a LOT of rules to consider..
-                if (currentArg.find("SRC")):
+                if "SRC" in currentArg:
 #Strip currentArg of its tag to get the raw IP
-                    currentArg = (str(currentArg[4:]))
+                    currentArg = str(currentArg[4:])
 #Take the saved IP and check if currentArg doesn't match an existing key(is not in the dictionary) #Ideally, I would check if current IP matches IP format here, but those have a LOT of rules to consider..
                     if currentArg not in IPDict:
 #                    print("New IP Found: "+currentArg);
@@ -256,26 +281,28 @@ def findMostCommonSourceIP(log):
                         IPDict[currentArg] = 1
 #If currentArg does match a key, set the value of that key +1
                     else:
-                        IPDict[currentArg] = (IPDict.get(currentArg)+1);
+                        IPDict[currentArg] = IPDict.get(currentArg)+1;
+                        skip = True
 #                        value = IPDict.get(currentArg)
 #                        value+=1
 #                        IPDict[currentArg] = value
 #                        print("+1 Existing IP: "+currentArg);
 #after the argument has been interpretted, set currentArg back to "" and skip the rest of the line
                 currentArg="";
-                skip = True
 #else if current character is a newline
             elif i == '\n' or i == '\r\n':
 #set currentArg back to none.
                 currentArg = "";
 #If character is not a delimiter, concatinate it to currentArg
             else:
-                currentArg=(currentArg+str(i));
+                currentArg=currentArg+str(i);
 #               print("Current IP: "+currentArg);
-#print the most common Client IP in IPDict and its count, not including responses sent by a server.
-    mostCommonIP = max(IPDict, key=IPDict.get)
+#Use postResults to list the most common IPs in asending order.
+    postResults("| Most common IPs in ascending order |", "No IPs included in file.", IPDict, emptyDict, 10);
+#print the most common Source IP in IPDict and its count, not including responses sent by a server.
+#    mostCommonIP = max(IPDict, key=IPDict.get)
 #now print that value and the IP sorted(IPDict.items[0])
-    print("Most Common Client IP: "+str(mostCommonIP)+" Count: "+str(IPDict.get(mostCommonIP)))
+#    print("Most Common Source IP: "+str(mostCommonIP)+" Count: "+str(IPDict.get(mostCommonIP)))
 
 
 
@@ -291,7 +318,7 @@ def main(args):
     elif (sys.argv[1] == "srcIP") or (sys.argv[1] == "s"):
     #call the correct helper function
         findMostCommonSourceIP(args);
-    elif (sys.argv[1] == "whoScanned") or (sys.argv[1] == "w"):
+    elif (sys.argv[1] == "whoScanned") and isinstance(args, str) is False or (sys.argv[1] == "w") and isinstance(args, str) is False:
         findPortScans(args);
     else:
     #end script early and give the user an error message if format is incorrect.
@@ -326,7 +353,7 @@ if __name__ == '__main__':
     else:
 #check for the number of arguments
         if (len(sys.argv)>3):
-            arg_list = sys.argv[-2:]
+            arg_list = sys.argv[2:]
         else:
             arg_list = sys.argv[2]     # adjust this for the number of args you need sys.argv[-2:] would take the last two.
         main(arg_list)          # call your main function
